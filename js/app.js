@@ -9,45 +9,41 @@ var initialLocations = [
 var newsUrl = "https://api.nytimes.com/svc/search/v2/articlesearch.json?api-key=ea0ba2495c4f4c6393675b9ec65bdb7f&q=";
 
 var loadView = ko.observable("none");
+
+var mapInitError = function () {
+    alert("地图加载失败");
+};
 var map = new google.maps.Map(document.getElementById('map'), {
   center: {lat: 40.7413549, lng: -73.9980244},
   zoom: 13,
   mapTypeControl: true
   });
 
-
-
+var markerList = ko.observableArray([]);
 
 var Locations = function(data) {
   self = this;
- 
   this.position = data.location;
   this.title = data.title;
-
-  
   this.marker = new google.maps.Marker({
     position:self.position,
     title:self.title,
-    animation:google.maps.Animation.DROP,
+    /*animation:google.maps.Animation.DROP,*/
     map:map
   });
-
-  
   this.largeInfowindow = new google.maps.InfoWindow();
-
   this.marker.addListener('click', (function(marker,infowindow) {
    return function() {
       if (infowindow.marker != marker) {
-      infowindow.marker = marker;
-      /*infowindow.setContent('<div>' + marker.title + '</div>');*/
-      infowindow.open(map, marker);
-  // Make sure the marker property is cleared if the infowindow is closed.
-      infowindow.addListener('closeclick', function() {
-      infowindow.marker = null;
+        infowindow.marker = marker;
+        /*infowindow.setContent('<div>' + marker.title + '</div>');*/
+        infowindow.open(map, marker);
+        // Make sure the marker property is cleared if the infowindow is closed.
+        infowindow.addListener('closeclick', function() {
+        infowindow.marker = null;
       });
       map.setCenter(marker.getPosition());
-      
-    $.ajax({
+      $.ajax({
             url: newsUrl + marker.title,
             dataType: "json",
             timeout: 5000,
@@ -57,93 +53,58 @@ var Locations = function(data) {
             complete: function () {
                 loadView('none')
             }
-        }).done(function (data) {
+      }).done(function (data) {
             infowindow.setContent(data.response.docs[0].snippet);
             infowindow.open(map,marker);
         }).fail(function () {
             alert("加载出错");
         })
-
-    }
-   };
-})(self.marker,self.largeInfowindow));
-  
-    
+      }
+    };
+  })(self.marker,self.largeInfowindow));
 }
 
 
 
 
-var ViewModel = function() {
-
-
-  
-
-  markerList = ko.observableArray([]);
+var ViewModel = function() { 
   this.name = ko.observable("");
-  
-
   markerList = ko.computed(function(){
     var markerList1 = [];
-
-    
-    var com = this.name();
-
-    
-    if (!com) {
-    
-
-
-
-      initialLocations.forEach(function(lacationItem) {
-      markerList1.push(new Locations(lacationItem));
-
-
-
-      
-      });
-    } else {
-
-      for(i=0;i<markerList().length;i++){
+    for(let i=0;i<markerList().length;i++){
       markerList()[i].marker.setMap(null);
     }
-
-     
-
-      initialLocations.forEach(function(lacationItem){
-        
-
-      if ((lacationItem.title.indexOf(com)) != -1){
-        
+    var com = this.name();
+    if (!com) {
+      initialLocations.forEach(function(lacationItem) {
         markerList1.push(new Locations(lacationItem));
-      } else{
-
-
-
-
-        
-      }
-
-    });
-
+      });
+    } else {
+      initialLocations.forEach(function(lacationItem){
+        if ((lacationItem.title.indexOf(com)) != -1){
+          markerList1.push(new Locations(lacationItem));
+        } 
+      });
     }
-
-
     return markerList1;
-
-    
   },this);
-
-  this.click = function (data) {
-        google.maps.event.trigger(data.marker,"click");
-  }
-
-  
-
-
+  self = this;
+  this.menuView = ko.observable('');
+  this.showButton = ko.observable('');
+  this.buttonText = ko.observable('显示菜单')
+  this.openMenu = function() {
+    if ( $('.menu-showButton').html() === "显示菜单" ){
+      this.menuView('0');
+      this.buttonText('隐藏菜单');
+    } else {
+      this.menuView('-300px');
+      this.buttonText('显示菜单');
+          };
+    };
 }
 
 ko.applyBindings(new ViewModel());
+
 
 
 
